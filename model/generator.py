@@ -9,7 +9,7 @@ from fastNLP.core.utils import _get_model_device
 from functools import partial
 from model.GAT import GAT, GraphAttentionLayer
 from .modeling_bart import BartClassificationHead
-
+import model.model as M
 
 
 class TransformerUnit(nn.Module):
@@ -69,7 +69,7 @@ class SequenceGeneratorModel(nn.Module):
         
         self.gat = GAT(self.hidden_size, self.hidden_size, 0.2, 0.2, 2)
         self.graph_att_layer = GraphAttentionLayer(self.hidden_size, self.hidden_size, 0.2, 0.2, concat=True)
-        
+        self.model= M.PRG_MoE(dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0)
         self.linear_layer = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
         if use_gate:
             self.linear_layer1 = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
@@ -92,6 +92,7 @@ class SequenceGeneratorModel(nn.Module):
         :param torch.LongTensor tgt_seq_len: bsz
         :return:
         """
+
         return self.seq2seq_model(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, tgt_tokens, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, tgt_seq_len, first)
 
 
@@ -104,7 +105,10 @@ class SequenceGeneratorModel(nn.Module):
         :return:
         """
         state, emotion_pred_output = self.seq2seq_model.prepare_state(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, first)
-        
+        # # h, h_xReact, h_oReact, utt_xReact_mask, utt_oReact_mask
+        # # h_prime = graph_att_layer( , utt_xReact_mask, utt_oReact_mask)
+        # cause_pred = model(emotion_pred_output, h_prime, u_i, device)
+        ## ...
         result = {}
         if self.add_ERC:
             result['result_emo'] = torch.argmax(emotion_pred_output, dim=-1).cpu().numpy()
