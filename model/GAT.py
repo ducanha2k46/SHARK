@@ -27,6 +27,7 @@ class GraphAttentionLayer(nn.Module):
         
 
     def forward(self, h, h_xReact, h_oReact, utt_xReact_mask, utt_oReact_mask):
+        print("có vào forward GraphAttention")
         bz, N, _ = h.size()
         Wh = torch.matmul(h, self.W)  # linearly transform the node's feature vector. h.shape: (N, in_features)
         h_xReact = self.csk_linear(h_xReact)

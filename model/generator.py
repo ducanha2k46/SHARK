@@ -9,7 +9,7 @@ from fastNLP.core.utils import _get_model_device
 from functools import partial
 from model.GAT import GAT, GraphAttentionLayer
 from .modeling_bart import BartClassificationHead
-import model.model as M
+# import model.model as M
 
 
 class TransformerUnit(nn.Module):
@@ -69,7 +69,7 @@ class SequenceGeneratorModel(nn.Module):
         
         self.gat = GAT(self.hidden_size, self.hidden_size, 0.2, 0.2, 2)
         self.graph_att_layer = GraphAttentionLayer(self.hidden_size, self.hidden_size, 0.2, 0.2, concat=True)
-        self.model= M.PRG_MoE(dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0)
+        # self.model= M.PRG_MoE(dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0)
         self.linear_layer = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
         if use_gate:
             self.linear_layer1 = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
