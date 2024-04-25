@@ -93,11 +93,7 @@ class SequenceGeneratorModel(nn.Module):
         :param torch.LongTensor tgt_seq_len: bsz
         :return:
         """
-        self.out = self.seq2seq_model(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, tgt_tokens, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, tgt_seq_len, first)
-        self.h_prime = self.graph_att_layer.res
-        print("h_prime in forward generator")
-        print(self.h_prime.size())
-        return self.out
+        return self.seq2seq_model(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, tgt_tokens, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, tgt_seq_len, first)
 
 
     def predict(self, src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, utt_prefix_ids, dia_utt_num, src_seq_len=None, first=None):
@@ -109,18 +105,13 @@ class SequenceGeneratorModel(nn.Module):
         :return:
         """
         state, emotion_pred_output = self.seq2seq_model.prepare_state(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, first)
-        print("res in generator")
+        print("res in predict")
         print("******************")
-        print("h_prime")
-        print(self.h_prime.size())
-        print("******************")
-        print("dia_utt_num")
-        print(dia_utt_num.size())
-        print("******************")
-        print("src_tokens")
-        print(src_tokens.size())
-        print("******************")
-        # cause_pred = self.moe(emotion_pred_output, h_prime, src_tokens, dia_utt_num)
+        print("res: ")
+        print(self.graph_att_layer.res.size())
+        print(self.graph_att_layer.res) # h_prime
+        h_prime = self.graph_att_layer.res
+        cause_pred = self.moe(emotion_pred_output, h_prime, dia_utt_num ,src_tokens)
         
 
         result = {}

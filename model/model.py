@@ -22,24 +22,16 @@ class GuidedMoEBasic(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, emotion_pred, h_prime, u_i, device):
-        cause_pred = self.binary_cause_classification_task(emotion_pred, h_prime, u_i)
+    def forward(self, emotion_pred, h_prime, input_ids, speaker_ids):
+        cause_pred = self.binary_cause_classification_task(emotion_pred, input_ids, h_prime, speaker_ids)
         return cause_pred
 
-    # def emotion_classification_task(self, input_ids, attention_mask, token_type_ids):
-    #     batch_size, max_doc_len, max_seq_len = input_ids.shape
-    #     _, pooled_output = self.bert(input_ids=input_ids.view(-1, max_seq_len),
-    #                                  attention_mask=attention_mask.view(-1, max_seq_len),
-    #                                  token_type_ids=token_type_ids.view(-1, max_seq_len),
-    #                                  return_dict=False)
-    #     utterance_representation = self.dropout(pooled_output)
-    #     return self.emotion_linear(utterance_representation)
 
-    def binary_cause_classification_task(self, emotion_prediction, h_prime, u_i):
-        pair_embedding = self.get_pair_embedding(emotion_prediction,h_prime,  u_i)
+    def binary_cause_classification_task(self, emotion_prediction, input_ids, h_prime, speaker_ids):
+        pair_embedding = self.get_pair_embedding(emotion_prediction, input_ids, h_prime, speaker_ids)
         gating_prob = self.gating_network(pair_embedding.view(-1, pair_embedding.shape[-1]).detach())
 
-        gating_prob = self.guiding_lambda * self.get_subtask_label(u_i, emotion_prediction).view(-1, self.n_expert) + (1 - self.guiding_lambda) * gating_prob
+        gating_prob = self.guiding_lambda * self.get_subtask_label(input_ids, speaker_ids, emotion_prediction).view(-1, self.n_expert) + (1 - self.guiding_lambda) * gating_prob
 
         pred = []
         for _ in range(self.n_expert):
@@ -50,14 +42,15 @@ class GuidedMoEBasic(nn.Module):
         cause_pred = sum(pred)
         return cause_pred
 
-    def gating_network_train(self, emotion_prediction, h_prime,  u_i):
-        pair_embedding = self.get_pair_embedding(emotion_prediction, h_prime, u_i)
+    def gating_network_train(self, emotion_prediction, input_ids, h_prime, speaker_ids):
+        pair_embedding = self.get_pair_embedding(emotion_prediction, input_ids, h_prime, speaker_ids)
         return self.gating_network(pair_embedding.view(-1, pair_embedding.shape[-1]).detach())
 
-    def get_pair_embedding(self, emotion_prediction, h_prime, u_i, device):
-        batch_size, max_doc_len, max_seq_len = u_i.shape
-        
-        concatenated_embedding = torch.cat((h_prime, emotion_prediction, u_i), dim=1) # 여기서 emotion_prediction에 detach를 해야 문제가 안생기겠지? 해보고 문제생기면 detach 고고
+    def get_pair_embedding(self, emotion_prediction, input_ids, h_prime, speaker_ids):
+        batch_size, max_doc_len, max_seq_len = input_ids.size()
+
+                
+        concatenated_embedding = torch.cat((h_prime, emotion_prediction, speaker_ids), dim=1) # 여기서 emotion_prediction에 detach를 해야 문제가 안생기겠지? 해보고 문제생기면 detach 고고
 
         pair_embedding = list()
         for batch in concatenated_embedding.view(batch_size, max_doc_len, -1):
@@ -67,11 +60,11 @@ class GuidedMoEBasic(nn.Module):
                     pair_per_batch.append(torch.cat((batch[t], batch[end_t]))) # backward 시, cycle이 생겨 문제가 생길 경우, batch[end_t].detach() 시도.
             pair_embedding.append(torch.stack(pair_per_batch))
         
-        pair_embedding = torch.stack(pair_embedding).to(device)
+        pair_embedding = torch.stack(pair_embedding).to(input_ids.device)
 
         return pair_embedding
 
-    def get_subtask_label(self, u_i, emotion_prediction):
+    def get_subtask_label(self, input_ids, speaker_ids, emotion_prediction):
         # After Inheritance, Define function.
         pass
 
@@ -79,27 +72,24 @@ class PRG_MoE(GuidedMoEBasic):
     def __init__(self, dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0, **kwargs):
         super().__init__(dropout=dropout, n_speaker=n_speaker, n_emotion=n_emotion, n_cause=n_cause, n_expert=4, guiding_lambda=guiding_lambda)
 
-    def get_subtask_label(self, u_i, emotion_prediction, device):
-        # batch_size, max_doc_len, max_seq_len = u_i.shape
-
-        pair_info = []
-        # for speaker_batch, emotion_batch in zip(u_i.view(batch_size, max_doc_len, -1), emotion_prediction.view(batch_size, max_doc_len, -1)):
-        #     info_pair_per_batch = []
-        #     for end_t in range(max_doc_len):
-        #         for t in range(end_t + 1):
-        #             speaker_condition = speaker_batch[t] == speaker_batch[end_t]
-        #             emotion_condition = torch.argmax(emotion_batch[t]) == torch.argmax(emotion_batch[end_t])
-
-        #             if speaker_condition and emotion_condition:
-        #                 info_pair_per_batch.append(torch.Tensor([1, 0, 0, 0])) # if speaker and dominant emotion are same
-        #             elif speaker_condition:
-        #                 info_pair_per_batch.append(torch.Tensor([0, 1, 0, 0])) # if speaker is same, but dominant emotion is differnt
-        #             elif emotion_condition:
-        #                 info_pair_per_batch.append(torch.Tensor([0, 0, 1, 0])) # if speaker is differnt, but dominant emotion is same
-        #             else:
-        #                 info_pair_per_batch.append(torch.Tensor([0, 0, 0, 1])) # if speaker and dominant emotion are differnt
-        #     pair_info.append(torch.stack(info_pair_per_batch))
+    def get_subtask_label(self, input_ids, speaker_ids, emotion_prediction):
         
-        # pair_info = torch.stack(pair_info).to(device)
+        pair_info = []
+        # Duyệt qua từng cặp câu trong hội thoại
+        for i in range(len(input_ids)):
+            for j in range(i + 1, len(input_ids)):
+                speaker_same = input_ids[i] == input_ids[j]  # Kiểm tra xem người nói có giống nhau không
+                emotion_same = torch.argmax(emotion_prediction[i]) == torch.argmax(emotion_prediction[j])  # Kiểm tra xem cảm xúc chủ đạo có giống nhau không
+
+                if speaker_same and emotion_same:
+                    pair_info.append(torch.tensor([1, 0, 0, 0]))
+                elif speaker_same and not emotion_same:
+                    pair_info.append(torch.tensor([0, 1, 0, 0]))
+                elif not speaker_same and emotion_same:
+                    pair_info.append(torch.tensor([0, 0, 1, 0]))
+                else:
+                    pair_info.append(torch.tensor([0, 0, 0, 1]))
+
+        pair_info = torch.stack(pair_info).to(input_ids.device)
 
         return pair_info
