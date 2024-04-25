@@ -51,7 +51,7 @@ class GraphAttentionLayer(nn.Module):
         h_prime = torch.matmul(attention, Wh)  # (N, out_features)
         self.res = h_prime
         print("h_prime from in GAT  ")
-        print(h_prime)
+        print(h_prime.size())
         print("*******************")
         # print(self.res)
         # print("*******************")
