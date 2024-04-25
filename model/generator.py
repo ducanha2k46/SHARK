@@ -66,9 +66,10 @@ class SequenceGeneratorModel(nn.Module):
             0.3,
         )
         self.transformer_unit = TransformerUnit(d_model=self.hidden_size, n_heads=8)
-        
+    
         self.gat = GAT(self.hidden_size, self.hidden_size, 0.2, 0.2, 2)
         self.graph_att_layer = GraphAttentionLayer(self.hidden_size, self.hidden_size, 0.2, 0.2, concat=True)
+        
         # self.model= M.PRG_MoE(dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0)
         self.linear_layer = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
         if use_gate:
@@ -92,9 +93,10 @@ class SequenceGeneratorModel(nn.Module):
         :param torch.LongTensor tgt_seq_len: bsz
         :return:
         """
-
-        return self.seq2seq_model(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, tgt_tokens, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, tgt_seq_len, first)
-
+        self.out = self.seq2seq_model(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, tgt_tokens, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, tgt_seq_len, first)
+        print("res in generator")
+        print(self.graph_att_layer.res)
+        return self.out 
 
     def predict(self, src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, utt_prefix_ids, dia_utt_num, src_seq_len=None, first=None):
         """

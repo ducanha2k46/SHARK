@@ -24,7 +24,7 @@ class GraphAttentionLayer(nn.Module):
         nn.init.xavier_uniform_(self.a_DS.data, gain=1.414)
         self.leakyrelu = nn.LeakyReLU(self.alpha)
         self.csk_linear = nn.Linear(out_features, out_features)
-        
+        self.res = []
 
     def forward(self, h, h_xReact, h_oReact, utt_xReact_mask, utt_oReact_mask):
         print("có vào forward GraphAttention")
@@ -49,10 +49,17 @@ class GraphAttentionLayer(nn.Module):
         attention = F.softmax(attention, dim=-1) # normalize the edge weights
         attention = F.dropout(attention, self.dropout, training=self.training)
         h_prime = torch.matmul(attention, Wh)  # (N, out_features)
-
+        self.res = h_prime
+        print("h_prime from in GAT  ")
+        print(h_prime)
+        print("*******************")
+        # print(self.res)
+        # print("*******************")
         if self.concat:
+            print("trong if concat=true")
             return F.elu(h_prime)
         else:
+            print("trong if concat=false")
             return h_prime
 
 
