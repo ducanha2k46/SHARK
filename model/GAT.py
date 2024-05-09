@@ -50,16 +50,16 @@ class GraphAttentionLayer(nn.Module):
         attention = F.dropout(attention, self.dropout, training=self.training)
         h_prime = torch.matmul(attention, Wh)  # (N, out_features)
         self.res = h_prime
-        print("h_prime from in GAT  ")
-        print(h_prime.size())
-        print("*******************")
+        # print("h_prime from in GAT  ")
+        # print(h_prime.size())
+        # print("*******************")
         # print(self.res)
         # print("*******************")
         if self.concat:
-            print("trong if concat=true")
+            # print("trong if concat=true")
             return F.elu(h_prime)
         else:
-            print("trong if concat=false")
+            # print("trong if concat=false")
             return h_prime
 
 

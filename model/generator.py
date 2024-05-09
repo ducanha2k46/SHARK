@@ -105,18 +105,22 @@ class SequenceGeneratorModel(nn.Module):
         :return:
         """
         state, emotion_pred_output = self.seq2seq_model.prepare_state(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, first)
-        print("res in predict")
-        print("******************")
-        print("res: ")
-        print(self.graph_att_layer.res.size())
-        print(self.graph_att_layer.res) # h_prime
-        h_prime = self.graph_att_layer.res
-        cause_pred = self.moe(emotion_pred_output, h_prime, dia_utt_num ,src_tokens)
+        # print("res in predict")
+        # print("******************")
+        # print("res: ")
+        # print(self.graph_att_layer.res.size())
+        # print(self.graph_att_layer.res) # h_prime
+        # h_prime = self.graph_att_layer.res
+        # cause_pred = self.moe(emotion_pred_output, h_prime, dia_utt_num ,src_tokens)
         
 
         result = {}
         if self.add_ERC:
             result['result_emo'] = torch.argmax(emotion_pred_output, dim=-1).cpu().numpy()
+            print("CÓ vào emotion_prd")
+            # print(torch.argmax(emotion_pred_output, dim=-1).cpu().numpy())
+            print(emotion_pred_output)
+            # print(result['result_emo'])
         result['result_ectec'] = self.generator.generate(state, utt_prefix_ids, dia_utt_num)
         return {'pred': result}
 
