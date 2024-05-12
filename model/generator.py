@@ -9,7 +9,8 @@ from fastNLP.core.utils import _get_model_device
 from functools import partial
 from model.GAT import GAT, GraphAttentionLayer
 from .modeling_bart import BartClassificationHead
-import model.model as M
+import numpy as np
+# import model.model as M
 
 
 class TransformerUnit(nn.Module):
@@ -70,7 +71,7 @@ class SequenceGeneratorModel(nn.Module):
         self.gat = GAT(self.hidden_size, self.hidden_size, 0.2, 0.2, 2)
         self.graph_att_layer = GraphAttentionLayer(self.hidden_size, self.hidden_size, 0.2, 0.2, concat=True)
         
-        self.moe= M.PRG_MoE(dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0)
+        # self.moe= M.PRG_MoE(dropout=0.5, n_speaker=2, n_emotion=7, n_cause=2, n_expert=4, guiding_lambda=0)
         self.linear_layer = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
         if use_gate:
             self.linear_layer1 = nn.Sequential(nn.Linear(self.hidden_size * 3, 2), nn.Sigmoid())
@@ -96,6 +97,19 @@ class SequenceGeneratorModel(nn.Module):
         return self.seq2seq_model(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, tgt_tokens, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, tgt_seq_len, first)
 
 
+    def most_common_number_in_each_sentence(prob, dia_utt_num):
+        most_common_numbers = []
+        for i, sentence in enumerate(prob):
+            # Lấy số kí tự của câu thứ i
+            num_characters = dia_utt_num[i]
+            
+            # Chỉ lấy số xuất hiện nhiều nhất trong số kí tự đó
+            most_common = np.bincount(sentence[:num_characters]).argmax()
+            
+            most_common_numbers.append(most_common)
+        
+        return most_common_numbers
+
     def predict(self, src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, utt_prefix_ids, dia_utt_num, src_seq_len=None, first=None):
         """
         Given the source, output the generated content.
@@ -105,18 +119,50 @@ class SequenceGeneratorModel(nn.Module):
         :return:
         """
         state, emotion_pred_output = self.seq2seq_model.prepare_state(src_tokens, src_tokens_xReact, src_seq_len_xReact, src_tokens_oReact, src_seq_len_oReact, utt_xReact_mask, utt_oReact_mask, utt_prefix_ids_xReact, utt_prefix_ids_oReact, src_tokens_xReact_retrieval, src_seq_len_xReact_retrieval, src_tokens_oReact_retrieval, src_seq_len_oReact_retrieval, utt_prefix_ids_xReact_retrieval, utt_prefix_ids_oReact_retrieval, self.gat, self.graph_att_layer, self.use_CSK, self.add_ERC, self.use_gate, self.fuse_type, self.use_retrieval_CSK, self.use_generated_CSK, self.linear_layer, self.linear_layer1, utt_prefix_ids, dia_utt_num, self.transformer_unit, self.emo_ffn, src_seq_len, first)
-        print("res in predict")
-        print("******************")
-        print("res: ")
-        print(self.graph_att_layer.res.size())
-        print(self.graph_att_layer.res) # h_prime
-        h_prime = self.graph_att_layer.res
-        cause_pred = self.moe(emotion_pred_output, h_prime, dia_utt_num ,src_tokens)
-        
+        # print("res in predict")
+        # print("******************")
+        # print("res: ")
+        # # print(self.graph_att_layer.res.size())
+        # # print(self.graph_att_layer.res) # h_prime
+        # h_prime = self.graph_att_layer.res
+        # print(dia_utt_num)
+        # print("emotion_prd:")
+        # print(emotion_pred_output.size())
 
         result = {}
         if self.add_ERC:
             result['result_emo'] = torch.argmax(emotion_pred_output, dim=-1).cpu().numpy()
+            probabilities = torch.argmax(emotion_pred_output, dim=-1).cpu().numpy()
+            print("emotion:")
+            print(result['result_emo'])
+            print("*****************")
+        print("utt_xReact_mask")
+        print(utt_xReact_mask)
+        print("dia_utt_num")
+        print(dia_utt_num)
+        print(dia_utt_num.size())
+        most_common_numbers = []
+        for i, sentence in enumerate(probabilities):
+                # Lấy số kí tự của câu thứ i
+            num_characters = dia_utt_num[i]
+            
+            # Tính toán số lần xuất hiện của mỗi số trong câu
+            counts = np.bincount(sentence[:num_characters])
+            
+            # Sắp xếp theo số lần xuất hiện giảm dần
+            sorted_counts = sorted(enumerate(counts), key=lambda x: x[1], reverse=True)
+            
+            # Lấy số xuất hiện nhiều nhất (nếu không phải là 0) hoặc số thứ hai (nếu giá trị nhiều nhất là 0)
+            most_common = 0
+            if sorted_counts[0][0] == 0:
+                if len(sorted_counts) > 1:
+                    most_common = sorted_counts[1][0]
+            else:
+                most_common = sorted_counts[0][0]
+            
+            most_common_numbers.append(most_common)
+        
+        print(most_common_numbers)
         result['result_ectec'] = self.generator.generate(state, utt_prefix_ids, dia_utt_num)
         return {'pred': result}
 

@@ -50,7 +50,7 @@ class GuidedMoEBasic(nn.Module):
         batch_size, max_doc_len, max_seq_len = input_ids.size()
 
                 
-        concatenated_embedding = torch.cat((h_prime, emotion_prediction, speaker_ids), dim=1) # 여기서 emotion_prediction에 detach를 해야 문제가 안생기겠지? 해보고 문제생기면 detach 고고
+        concatenated_embedding = torch.cat((h_prime, emotion_prediction, speaker_ids.view(-1).unsqueeze(1)), dim=1) # 여기서 emotion_prediction에 detach를 해야 문제가 안생기겠지? 해보고 문제생기면 detach 고고
 
         pair_embedding = list()
         for batch in concatenated_embedding.view(batch_size, max_doc_len, -1):
