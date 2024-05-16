@@ -73,14 +73,38 @@ class PRG_MoE(GuidedMoEBasic):
         super().__init__(dropout=dropout, n_speaker=n_speaker, n_emotion=n_emotion, n_cause=n_cause, n_expert=4, guiding_lambda=guiding_lambda)
 
     def get_subtask_label(self, input_ids, speaker_ids, emotion_prediction):
+        most_common_numbers = []
+        probabilities = torch.argmax(emotion_prediction, dim=-1).cpu().numpy()
+        for i, sentence in enumerate(probabilities):
+                # Lấy số kí tự của câu thứ i
+            num_characters = speaker_ids[i]
+            
+            # Tính toán số lần xuất hiện của mỗi số trong câu
+            counts = np.bincount(sentence[:num_characters])
+            
+            # Sắp xếp theo số lần xuất hiện giảm dần
+            sorted_counts = sorted(enumerate(counts), key=lambda x: x[1], reverse=True)
+            
+            # Lấy số xuất hiện nhiều nhất (nếu không phải là 0) hoặc số thứ hai (nếu giá trị nhiều nhất là 0)
+            most_common = 0
+            if sorted_counts[0][0] == 0:
+                if len(sorted_counts) > 1:
+                    most_common = sorted_counts[1][0]
+            else:
+                most_common = sorted_counts[0][0]
+            
+            most_common_numbers.append(most_common)
+        
+        print(most_common_numbers)
         
         pair_info = []
-        # Duyệt qua từng cặp câu trong hội thoại
         for i in range(len(input_ids)):
             for j in range(i + 1, len(input_ids)):
-                speaker_same = input_ids[i] == input_ids[j]  # Kiểm tra xem người nói có giống nhau không
-                emotion_same = torch.argmax(emotion_prediction[i]) == torch.argmax(emotion_prediction[j])  # Kiểm tra xem cảm xúc chủ đạo có giống nhau không
-
+                if (i % 2 == j % 2):  
+                    speaker_same = True
+                else:
+                    speaker_same = False
+                emotion_same = most_common_numbers[i] == most_common_numbers[j]  
                 if speaker_same and emotion_same:
                     pair_info.append(torch.tensor([1, 0, 0, 0]))
                 elif speaker_same and not emotion_same:

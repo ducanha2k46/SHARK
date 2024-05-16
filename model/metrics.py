@@ -44,6 +44,7 @@ class Seq2SeqSpanMetric(MetricBase):
                     self.confusion_mat[ts[j]][ps[j]] += 1
                 else:
                     print('len_pred error: ', dia_utt_num[i], len(ps))
+        print(self.confusion_mat)
 
 
     def evaluate_ectec(self, target_span, pred, tgt_tokens):
