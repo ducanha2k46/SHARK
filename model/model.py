@@ -48,16 +48,23 @@ class GuidedMoEBasic(nn.Module):
 
     def get_pair_embedding(self, emotion_prediction, input_ids, h_prime, speaker_ids):
         batch_size, max_doc_len = input_ids.size()
-        emotion_prediction = emotion_prediction.view(emotion_prediction.size(0), -1)
-        h_prime = h_prime.view(h_prime.size(0), -1)
+        max_doc_len = batch_size
         print(input_ids.size())
-        print( emotion_prediction.size())
+        print(emotion_prediction.size())
         print(h_prime.size())
-        print(speaker_ids.size())
-        concatenated_embedding = torch.cat((h_prime, emotion_prediction, speaker_ids), dim=1) # 여기서 emotion_prediction에 detach를 해야 문제가 안생기겠지? 해보고 문제생기면 detach 고고
+        
+       
+        emotion_prediction = torch.mean(emotion_prediction, dim = 1)
+        h_prime =  torch.mean(emotion_prediction, dim = 1)
+        print(input_ids.size())
+        print(emotion_prediction.size())
+        print(h_prime.size())
+       
+       
+        concatenated_embedding = torch.cat((h_prime, emotion_prediction, input_ids), dim=1) # 여기서 emotion_prediction에 detach를 해야 문제가 안생기겠지? 해보고 문제생기면 detach 고고
 
         pair_embedding = list()
-        for batch in concatenated_embedding.view(batch_size, max_doc_len, -1):
+        for batch in concatenated_embedding.view(batch_size,max_doc_len -1):
             pair_per_batch = list()
             for end_t in range(max_doc_len):
                 for t in range(end_t + 1):
