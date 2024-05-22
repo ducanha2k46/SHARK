@@ -293,12 +293,9 @@ if __name__ == "__main__":
     seed_pool = [2023, 153, 42, 43, 52]
     all_res = []
 
-    for ii in range(args.num_run):
-        args.seed = seed_pool[ii]
-        print('\n\n****** run {} begin ******\n'.format(ii+1))
-        res = run()
-        all_res.append(res)
-        print('\n****** run {} end ******\n\n'.format(ii+1))
-    
-        if ii > 0:
-            print('\n\n{}\n\n{} runs average:\n{}\n{}'.format(np.array(all_res), ii+1, np.array(all_res).mean(axis=0), np.array(all_res).std(axis=0)))
+
+    args.seed = 2023
+    print('\n\n****** run  begin ******\n')
+    res = run()
+    all_res.append(res)
+    print('\n****** run end ******\n\n')

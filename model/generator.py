@@ -134,8 +134,7 @@ class SequenceGeneratorModel(nn.Module):
 
         result['result_ectec'] = self.generator.generate(state, utt_prefix_ids, dia_utt_num)
         return {'pred': result}
-
-
+    
 r"""
 
 """
